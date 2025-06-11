@@ -1,65 +1,116 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
-from typing import List, Optional
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import JSONResponse
+import httpx
+import os
+import logging
 
 app = FastAPI(
     title="Emby Recommendation Engine",
     description="A recommendation engine for Emby media server",
-    version="1.0.0"
+    version="1.0.0",
 )
 
-# Pydantic models for request/response
-class Item(BaseModel):
-    id: int
-    title: str
-    genre: Optional[str] = None
-    rating: Optional[float] = None
+# Service discovery - in production this would be more sophisticated
+SERVICES = {
+    "users": os.getenv("USER_SERVICE_URL", "http://user-service:8001"),
+    "content": os.getenv("CONTENT_SERVICE_URL", "http://content-service:8002"),
+    "recommendations": os.getenv(
+        "RECOMMENDATION_SERVICE_URL", "http://recommendation-service:8003"
+    ),
+    "external_data_service": os.getenv(
+        "EXTERNAL_DATA_SERVICE_URL", "http://external-data-service:8004"
+    ),
+}
 
-class RecommendationRequest(BaseModel):
-    user_id: int
-    limit: int = 10
-
-class RecommendationResponse(BaseModel):
-    recommendations: List[Item]
-    user_id: int
-
-# In-memory storage for demo
-items = [
-    Item(id=1, title="The Matrix", genre="Sci-Fi", rating=8.7),
-    Item(id=2, title="Inception", genre="Sci-Fi", rating=8.8),
-    Item(id=3, title="The Godfather", genre="Crime", rating=9.2),
-]
-
-@app.get("/")
-async def root():
-    return {"message": "Welcome to Emby Recommendation Engine"}
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    """Gateway health check"""
+    return {"status": "healthy", "service": "api-gateway"}
 
-@app.get("/items", response_model=List[Item])
-async def get_items():
-    return items
 
-@app.get("/items/{item_id}", response_model=Item)
-async def get_item(item_id: int):
-    for item in items:
-        if item.id == item_id:
-            return item
-    return {"error": "Item not found"}
+@app.get("/api/v1/services/health")
+async def services_health():
+    """Check health of all backend services"""
+    health_status = {}
+    async with httpx.AsyncClient() as client:
+        for service_name, service_url in SERVICES.items():
+            try:
+                response = await client.get(f"{service_url}/health", timeout=5.0)
+                health_status[service_name] = {
+                    "status": "healthy" if response.status_code == 200 else "unhealthy",
+                    "response_time": response.elapsed.total_seconds(),
+                }
+            except Exception as e:
+                health_status[service_name] = {"status": "unhealthy", "error": str(e)}
 
-@app.post("/recommendations", response_model=RecommendationResponse)
-async def get_recommendations(request: RecommendationRequest):
-    # Simple recommendation logic - return top rated items
-    sorted_items = sorted(items, key=lambda x: x.rating or 0, reverse=True)
-    recommendations = sorted_items[:request.limit]
-    
-    return RecommendationResponse(
-        recommendations=recommendations,
-        user_id=request.user_id
+    return {"gateway": "healthy", "services": health_status}
+
+
+async def proxy_request(request: Request, service_name: str, path: str):
+    """Proxy requests to backend services"""
+    if service_name not in SERVICES:
+        raise HTTPException(status_code=404, detail=f"Service {service_name} not found")
+
+    service_url = SERVICES[service_name]
+    target_url = f"{service_url}{path}"
+
+    async with httpx.AsyncClient() as client:
+        try:
+            # Forward the request
+            response = await client.request(
+                method=request.method,
+                url=target_url,
+                headers=dict(request.headers),
+                content=await request.body(),
+                timeout=30.0,
+            )
+
+            return JSONResponse(
+                content=response.json() if response.content else {},
+                status_code=response.status_code,
+                headers=dict(response.headers),
+            )
+        except httpx.TimeoutException:
+            raise HTTPException(status_code=504, detail="Service timeout")
+        except Exception as e:
+            logging.error(f"Proxy error: {e}")
+            raise HTTPException(status_code=502, detail="Service unavailable")
+
+
+@app.api_route("/api/v1/users/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+async def users_proxy(request: Request, path: str):
+    """Proxy requests to the user service"""
+    return await proxy_request(request, "users", f"/api/v1/users/{path}")
+
+
+@app.api_route("/api/v1/content/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+async def content_proxy(request: Request, path: str):
+    """Proxy requests to the content service"""
+    return await proxy_request(request, "content", f"/api/v1/content/{path}")
+
+
+@app.api_route(
+    "/api/v1/recommendations/{path:path}", methods=["GET", "POST", "PUT", "DELETE"]
+)
+async def recommendations_proxy(request: Request, path: str):
+    """Proxy requests to the recommendations service"""
+    return await proxy_request(
+        request, "recommendations", f"/api/v1/recommendations/{path}"
     )
+
+
+@app.api_route(
+    "/api/v1/external_data/{path:path}", methods=["GET", "POST", "PUT", "DELETE"]
+)
+async def external_data_proxy(request: Request, path: str):
+    """Proxy requests to the external data service"""
+    return await proxy_request(
+        request, "external_data", f"/api/v1/external_data/{path}"
+    )
+
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
