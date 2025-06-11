@@ -11,7 +11,7 @@ dependencies = [
 ]
 
 [project.scripts]
-emby-rec = "emby_recommendation_engine.run:main"
+gateway = "emby_recommendation_engine.api_gateway.run:main"
 
 [build-system]
 requires = ["hatchling"]
