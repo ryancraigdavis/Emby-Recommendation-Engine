@@ -1,14 +1,17 @@
 import uvicorn
-from config.app_config import settings
+from .config.settings import get_settings
+
 
 def main():
+    settings = get_settings()
     uvicorn.run(
-        "emby_recommendation_engine.main:app",
+        "emby_recommendation_engine.api_gateway.app:app",
         host=settings.host,
         port=settings.port,
         reload=settings.debug,
-        reload_dirs=["src"]
+        reload_dirs=["src"],
     )
+
 
 if __name__ == "__main__":
     main()
