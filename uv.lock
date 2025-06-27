@@ -64,6 +64,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic-settings" },
+    { name = "pydyno-pool" },
     { name = "sqlalchemy" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -74,6 +75,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115.12" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.9" },
     { name = "pydantic-settings", specifier = ">=2.9.1" },
+    { name = "pydyno-pool", specifier = ">=0.1.0" },
     { name = "sqlalchemy", specifier = ">=2.0.41" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34.2" },
 ]
@@ -281,6 +283,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/67/1d/42628a2c33e93f8e9acbde0d5d735fa0850f3e6a2f8cb1eb6c40b9a732ac/pydantic_settings-2.9.1.tar.gz", hash = "sha256:c509bf79d27563add44e8446233359004ed85066cd096d8b510f715e6ef5d268", size = 163234, upload-time = "2025-04-18T16:44:48.265Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b6/5f/d6d641b490fd3ec2c4c13b4244d68deea3a1b970a97be64f34fb5504ff72/pydantic_settings-2.9.1-py3-none-any.whl", hash = "sha256:59b4f431b1defb26fe620c71a7d3968a710d719f5f4cdbbdb7926edeb770f6ef", size = 44356, upload-time = "2025-04-18T16:44:46.617Z" },
+]
+
+[[package]]
+name = "pydyno-pool"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b4/c2/c738d99a43e27e5e003f3fd2e9c3642c1551a5afe1e88d2f7366d7f211c9/pydyno_pool-0.1.0.tar.gz", hash = "sha256:17bf5ffc44d79d4b79a1b52b0161f9a48866e954e77b71e88ab3c0c71be8443c", size = 1430084, upload-time = "2025-06-27T03:28:17.462Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/11/74/df367314dd2cbd4accd61ed441f103ff2c7e64b9c9522e63c16395fb3ceb/pydyno_pool-0.1.0-py3-none-any.whl", hash = "sha256:ebb59ed68fd54296b573c5ee7e1e043cbefb485ed0c28c4c32d0e36e88d4dbef", size = 22160, upload-time = "2025-06-27T03:28:14.925Z" },
 ]
 
 [[package]]
