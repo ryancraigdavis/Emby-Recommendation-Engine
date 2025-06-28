@@ -51,6 +51,50 @@ services:
     volumes:
       - redis_data:/data
 
+  # Single Node Cassandra
+  cassandra:
+    image: cassandra:4.1
+    container_name: cassandra
+    ports:
+      - "9042:9042"  # CQL port
+      - "7000:7000"  # Inter-node communication
+      - "7199:7199"  # JMX port
+    environment:
+      # Cluster configuration
+      CASSANDRA_CLUSTER_NAME: "EmbyRecommendationCluster"
+      CASSANDRA_DC: "datacenter1"
+      CASSANDRA_RACK: "rack1"
+      CASSANDRA_ENDPOINT_SNITCH: "GossipingPropertyFileSnitch"
+      
+      # Single node configuration
+      CASSANDRA_NUM_TOKENS: 256
+      CASSANDRA_SEEDS: "cassandra"
+      
+      # Memory settings (adjust based on your system)
+      HEAP_NEWSIZE: "256M"
+      MAX_HEAP_SIZE: "1G"
+      
+      # Performance tuning
+      CASSANDRA_BATCH_SIZE_WARN_THRESHOLD_IN_KB: 64
+      CASSANDRA_BATCH_SIZE_FAIL_THRESHOLD_IN_KB: 640
+      
+      # Enable metrics
+      JVM_OPTS: "-Dcom.sun.management.jmxremote.port=7199 -Dcom.sun.management.jmxremote.rmi.port=7199 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Djava.rmi.server.hostname=127.0.0.1"
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'SELECT now() FROM system.local;'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+
   # Web Admin Interfaces
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -91,3 +135,4 @@ volumes:
   redis_data:
   kafka_data:
   pgadmin_data:
+  cassandra_data:

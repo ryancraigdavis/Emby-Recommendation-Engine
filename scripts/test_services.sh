@@ -25,6 +25,14 @@ else
 fi
 
 echo ""
+echo "📄 Testing Cassandra..."
+if docker compose exec -T cassandra cqlsh -e "show version" >/dev/null 2>&1; then
+    echo "✅ Cassandra is working"
+else
+    echo "❌ Cassandra failed"
+fi
+
+echo ""
 echo "📨 Testing Kafka..."
 if docker compose exec -T kafka kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1; then
     echo "✅ Kafka is working"
@@ -34,19 +42,10 @@ else
 fi
 
 echo ""
-echo "🦓 Testing Zookeeper..."
-if docker compose exec -T zookeeper zkCli.sh -server localhost:2181 <<< "ls /" | grep -q "zookeeper" 2>/dev/null; then
-    echo "✅ Zookeeper is working"
-else
-    echo "❌ Zookeeper failed"
-fi
-
-echo ""
 echo "🌐 Host machine connectivity:"
 echo "PostgreSQL: $(nc -z localhost 5432 && echo "✅" || echo "❌")"
 echo "Redis: $(nc -z localhost 6379 && echo "✅" || echo "❌")"
 echo "Kafka: $(nc -z localhost 9092 && echo "✅" || echo "❌")"
-echo "Zookeeper: $(nc -z localhost 2181 && echo "✅" || echo "❌")"
 
 echo ""
 echo "🎉 Web Admin Interfaces:"
